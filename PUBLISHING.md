@@ -66,7 +66,8 @@ jobs:
       maturity: alpha
       repository: ${{ github.event.repository.html_url }}
       release-url: ${{ github.event.release.html_url }}
-    secrets: inherit  # Inherits org-level INNEROPEN_IO_TOKEN
+    secrets:
+      GITHUB_TOKEN: ${{ secrets.INNEROPEN_IO_TOKEN }}
 ```
 
 ### Manual Publishing
@@ -105,7 +106,8 @@ jobs:
       type: ${{ inputs.type }}
       maturity: alpha
       repository: ${{ github.event.repository.html_url }}
-    secrets: inherit
+    secrets:
+      GITHUB_TOKEN: ${{ secrets.INNEROPEN_IO_TOKEN }}
 ```
 
 ## Workflow Inputs

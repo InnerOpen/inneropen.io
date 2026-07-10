@@ -54,7 +54,8 @@ jobs:
       version: ${{ github.event.release.tag_name }}
       headline: "Marvin ${{ github.event.release.tag_name }} Released"
       summary: ${{ github.event.release.body }}
-    secrets: inherit  # Uses org-level INNEROPEN_IO_TOKEN
+    secrets:
+      GITHUB_TOKEN: ${{ secrets.INNEROPEN_IO_TOKEN }}
 ```
 
 ## Feeds
