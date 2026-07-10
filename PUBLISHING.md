@@ -67,7 +67,7 @@ jobs:
       repository: ${{ github.event.repository.html_url }}
       release-url: ${{ github.event.release.html_url }}
     secrets:
-      GITHUB_TOKEN: ${{ secrets.INNEROPEN_IO_TOKEN }}
+      PUBLISHING_TOKEN: ${{ secrets.INNEROPEN_IO_TOKEN }}
 ```
 
 ### Manual Publishing
@@ -107,7 +107,7 @@ jobs:
       maturity: alpha
       repository: ${{ github.event.repository.html_url }}
     secrets:
-      GITHUB_TOKEN: ${{ secrets.INNEROPEN_IO_TOKEN }}
+      PUBLISHING_TOKEN: ${{ secrets.INNEROPEN_IO_TOKEN }}
 ```
 
 ## Workflow Inputs

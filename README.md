@@ -55,7 +55,7 @@ jobs:
       headline: "Marvin ${{ github.event.release.tag_name }} Released"
       summary: ${{ github.event.release.body }}
     secrets:
-      GITHUB_TOKEN: ${{ secrets.INNEROPEN_IO_TOKEN }}
+      PUBLISHING_TOKEN: ${{ secrets.INNEROPEN_IO_TOKEN }}
 ```
 
 ## Feeds
