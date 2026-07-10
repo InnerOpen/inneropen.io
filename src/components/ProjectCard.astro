@@ -1,0 +1,24 @@
+---
+import Card from './Card.astro';
+import StatusBadge from './StatusBadge.astro';
+
+interface Props {
+  title: string;
+  eyebrow: string;
+  description: string;
+  status: string;
+  maturity?: string;
+  href?: string;
+}
+
+const { title, eyebrow, description, status, maturity, href } = Astro.props;
+---
+
+<Card href={href}>
+  <div class="card-topline">
+    <span>{eyebrow}</span>
+    {maturity ? <StatusBadge status={maturity} variant="maturity" /> : <StatusBadge status={status} />}
+  </div>
+  <h3>{title}</h3>
+  <p>{description}</p>
+</Card>

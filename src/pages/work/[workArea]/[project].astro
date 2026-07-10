@@ -1,0 +1,174 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import Header from '../../../components/Header.astro';
+import Footer from '../../../components/Footer.astro';
+import Button from '../../../components/Button.astro';
+import Card from '../../../components/Card.astro';
+import StatusBadge from '../../../components/StatusBadge.astro';
+import Kicker from '../../../components/Kicker.astro';
+import { getCollection, render } from 'astro:content';
+
+export async function getStaticPaths() {
+  const projects = await getCollection('projects');
+
+  return projects.map((project) => ({
+    params: {
+      workArea: project.data.family,
+      project: project.data.slug,
+    },
+    props: { project },
+  }));
+}
+
+const { project } = Astro.props;
+const { Content } = await render(project);
+
+// Get work area
+const workAreas = await getCollection('work-areas');
+const workArea = workAreas.find((w) => w.data.slug === project.data.family);
+
+// Get updates for this project
+const allUpdates = await getCollection('updates', ({ data }) => !data.draft);
+const updates = allUpdates
+  .filter((u) => u.data.project === project.data.slug)
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
+  .slice(0, 6);
+
+// Get related notes
+const allNotes = await getCollection('notes', ({ data }) => data.status === 'published');
+const notes = allNotes
+  .filter((n) => n.data.project === project.data.slug || n.data.workArea === project.data.family)
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
+  .slice(0, 4);
+---
+
+<BaseLayout
+  title={`${project.data.title} — ${workArea?.data.title || 'InnerOpen Engineering'}`}
+  description={project.data.description}
+>
+  <Header />
+
+  <main>
+    <section class="hero">
+      <Kicker>{workArea?.data.title || project.data.family}</Kicker>
+      <h1>{project.data.title}</h1>
+      <p class="lede">{project.data.description}</p>
+
+      <div class="project-meta">
+        <StatusBadge status={project.data.maturity} variant="maturity" />
+        {project.data.currentVersion && (
+          <span class="version">v{project.data.currentVersion}</span>
+        )}
+        <StatusBadge status={project.data.status} />
+      </div>
+
+      <div class="hero-actions">
+        {project.data.repository && (
+          <Button href={project.data.repository} variant="primary">Repository</Button>
+        )}
+        {project.data.documentation && (
+          <Button href={project.data.documentation} variant="secondary">Documentation</Button>
+        )}
+        {project.data.package && (
+          <Button href={`https://pypi.org/project/${project.data.package}/`} variant="secondary">
+            Package
+          </Button>
+        )}
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="content-body">
+        <Content />
+      </div>
+    </section>
+
+    {updates.length > 0 && (
+      <section class="section">
+        <div class="section-heading">
+          <Kicker>Updates</Kicker>
+          <h2>Recent releases and milestones</h2>
+        </div>
+        <div class="grid">
+          {updates.map((update) => (
+            <Card href={`/updates/${update.id}`}>
+              <div class="card-topline">
+                <span>{update.data.type}</span>
+                <span class="status">{new Date(update.data.date).toLocaleDateString()}</span>
+              </div>
+              <h3>{update.data.title}</h3>
+              <p>{update.data.description}</p>
+            </Card>
+          ))}
+        </div>
+      </section>
+    )}
+
+    {notes.length > 0 && (
+      <section class="section">
+        <div class="section-heading">
+          <Kicker>Related Notes</Kicker>
+          <h2>Engineering notes</h2>
+        </div>
+        <div class="notes-list">
+          {notes.map((note) => (
+            <article>
+              <a href={`/notes/${note.id}`}>
+                <span>{note.data.title.split('—')[0].trim()}</span>
+                <p>{note.data.description}</p>
+              </a>
+            </article>
+          ))}
+        </div>
+      </section>
+    )}
+  </main>
+
+  <Footer />
+</BaseLayout>
+
+<style>
+  .project-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 18px;
+  }
+
+  .version {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+
+  .content-body {
+    max-width: 820px;
+    color: var(--muted);
+    line-height: 1.65;
+  }
+
+  .content-body :global(h2) {
+    color: var(--text);
+    margin-top: 48px;
+  }
+
+  .content-body :global(ul) {
+    margin-left: 24px;
+  }
+
+  .content-body :global(code) {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+
+  .notes-list article a {
+    display: block;
+  }
+
+  .notes-list article a:hover {
+    opacity: 0.8;
+  }
+</style>

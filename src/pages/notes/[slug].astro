@@ -1,0 +1,161 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import Kicker from '../../components/Kicker.astro';
+import { getCollection, render } from 'astro:content';
+
+export async function getStaticPaths() {
+  const notes = await getCollection('notes', ({ data }) => data.status === 'published');
+
+  return notes.map((note) => ({
+    params: { slug: note.id },
+    props: { note },
+  }));
+}
+
+const { note } = Astro.props;
+const { Content } = await render(note);
+
+// Get work area if referenced
+const workAreas = await getCollection('work-areas');
+const workArea = note.data.workArea
+  ? workAreas.find((w) => w.data.slug === note.data.workArea)
+  : null;
+
+// Get related notes (same work area or tags)
+const allNotes = await getCollection('notes', ({ data }) => data.status === 'published');
+const relatedNotes = allNotes
+  .filter((n) => {
+    if (n.id === note.id) return false;
+    if (n.data.workArea === note.data.workArea) return true;
+    return note.data.tags.some((tag) => n.data.tags.includes(tag));
+  })
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
+  .slice(0, 4);
+---
+
+<BaseLayout
+  title={`${note.data.title} — InnerOpen Engineering`}
+  description={note.data.description}
+>
+  <Header />
+
+  <main>
+    <section class="hero">
+      {workArea && <Kicker>{workArea.data.title}</Kicker>}
+      <h1>{note.data.title}</h1>
+
+      <div class="note-meta">
+        <span class="date">{new Date(note.data.date).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        })}</span>
+        {note.data.tags.length > 0 && (
+          <div class="tags">
+            {note.data.tags.map((tag) => (
+              <span class="tag">{tag}</span>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="content-body">
+        <Content />
+      </div>
+    </section>
+
+    {relatedNotes.length > 0 && (
+      <section class="section">
+        <div class="section-heading">
+          <Kicker>Related Notes</Kicker>
+          <h2>More engineering notes</h2>
+        </div>
+        <div class="notes-list">
+          {relatedNotes.map((relatedNote) => (
+            <article>
+              <a href={`/notes/${relatedNote.id}`}>
+                <span>{relatedNote.data.title.split('—')[0].trim()}</span>
+                <p>{relatedNote.data.description}</p>
+              </a>
+            </article>
+          ))}
+        </div>
+      </section>
+    )}
+  </main>
+
+  <Footer />
+</BaseLayout>
+
+<style>
+  .note-meta {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin-top: 18px;
+    flex-wrap: wrap;
+  }
+
+  .date {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+
+  .tags {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .tag {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.75rem;
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: 4px 10px;
+    border-radius: 999px;
+    text-transform: lowercase;
+  }
+
+  .content-body {
+    max-width: 820px;
+    color: var(--muted);
+    line-height: 1.65;
+  }
+
+  .content-body :global(h2),
+  .content-body :global(h3) {
+    color: var(--text);
+    margin-top: 48px;
+  }
+
+  .content-body :global(ul),
+  .content-body :global(ol) {
+    margin-left: 24px;
+  }
+
+  .content-body :global(strong) {
+    color: var(--text);
+  }
+
+  .content-body :global(code) {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+
+  .notes-list article a {
+    display: block;
+  }
+
+  .notes-list article a:hover {
+    opacity: 0.8;
+  }
+</style>

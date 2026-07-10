@@ -1,0 +1,63 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import Card from '../../components/Card.astro';
+import Kicker from '../../components/Kicker.astro';
+import { getCollection } from 'astro:content';
+
+const allUpdates = await getCollection('updates', ({ data }) => !data.draft);
+const updates = allUpdates.sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+
+// Group by month
+const groupedUpdates = updates.reduce((acc, update) => {
+  const date = new Date(update.data.date);
+  const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  const label = date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+
+  if (!acc[key]) {
+    acc[key] = { label, updates: [] };
+  }
+  acc[key].updates.push(update);
+  return acc;
+}, {} as Record<string, { label: string; updates: typeof updates }>);
+---
+
+<BaseLayout
+  title="Updates — InnerOpen Engineering"
+  description="Latest releases, milestones, and announcements from InnerOpen projects."
+>
+  <Header />
+
+  <main>
+    <section class="hero">
+      <Kicker>Updates</Kicker>
+      <h1>Releases, milestones, and announcements.</h1>
+      <p class="lede">
+        Updates from InnerOpen projects: new releases, feature milestones, and technical announcements.
+      </p>
+    </section>
+
+    {Object.entries(groupedUpdates).map(([key, group]) => (
+      <section class="section">
+        <div class="section-heading">
+          <h2>{group.label}</h2>
+        </div>
+        <div class="grid">
+          {group.updates.map((update) => (
+            <Card href={`/updates/${update.id}`}>
+              <div class="card-topline">
+                <span>{update.data.type}</span>
+                {update.data.version && <span class="status">v{update.data.version}</span>}
+              </div>
+              <h3>{update.data.title}</h3>
+              <p>{update.data.description}</p>
+            </Card>
+          ))}
+        </div>
+      </section>
+    ))}
+  </main>
+
+  <Footer />
+</BaseLayout>

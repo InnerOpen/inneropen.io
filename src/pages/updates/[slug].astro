@@ -1,0 +1,128 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import Button from '../../components/Button.astro';
+import StatusBadge from '../../components/StatusBadge.astro';
+import Kicker from '../../components/Kicker.astro';
+import { getCollection, render } from 'astro:content';
+
+export async function getStaticPaths() {
+  const updates = await getCollection('updates', ({ data }) => !data.draft);
+
+  return updates.map((update) => ({
+    params: { slug: update.id },
+    props: { update },
+  }));
+}
+
+const { update } = Astro.props;
+const { Content } = await render(update);
+
+// Get work area and project
+const workAreas = await getCollection('work-areas');
+const workArea = workAreas.find((w) => w.data.slug === update.data.workArea);
+
+const projects = await getCollection('projects');
+const project = projects.find((p) => p.data.slug === update.data.project);
+---
+
+<BaseLayout
+  title={`${update.data.title} — InnerOpen Engineering`}
+  description={update.data.description}
+>
+  <Header />
+
+  <main>
+    <section class="hero">
+      <Kicker>{workArea?.data.title || update.data.workArea}</Kicker>
+      <h1>{update.data.title}</h1>
+
+      <div class="update-meta">
+        <StatusBadge status={update.data.type} variant="type" />
+        {update.data.version && (
+          <span class="version">v{update.data.version}</span>
+        )}
+        {update.data.maturity && (
+          <StatusBadge status={update.data.maturity} variant="maturity" />
+        )}
+        <span class="date">{new Date(update.data.date).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        })}</span>
+      </div>
+
+      {project && (
+        <p class="lede">
+          <a href={`/work/${project.data.family}/${project.data.slug}`}>{project.data.title}</a>
+        </p>
+      )}
+
+      <div class="hero-actions">
+        {update.data.releaseUrl && (
+          <Button href={update.data.releaseUrl} variant="primary">View Release</Button>
+        )}
+        {update.data.repository && (
+          <Button href={update.data.repository} variant="secondary">Repository</Button>
+        )}
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="content-body">
+        <Content />
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+</BaseLayout>
+
+<style>
+  .update-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 18px;
+    flex-wrap: wrap;
+  }
+
+  .version,
+  .date {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+
+  .lede a {
+    color: var(--accent);
+  }
+
+  .lede a:hover {
+    text-decoration: underline;
+  }
+
+  .content-body {
+    max-width: 820px;
+    color: var(--muted);
+    line-height: 1.65;
+  }
+
+  .content-body :global(h2) {
+    color: var(--text);
+    margin-top: 48px;
+  }
+
+  .content-body :global(ul) {
+    margin-left: 24px;
+  }
+
+  .content-body :global(code) {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+</style>

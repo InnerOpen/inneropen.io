@@ -1,0 +1,52 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import Kicker from '../../components/Kicker.astro';
+import { getCollection } from 'astro:content';
+
+const allNotes = await getCollection('notes', ({ data }) => data.status === 'published');
+const notes = allNotes.sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+---
+
+<BaseLayout
+  title="Engineering Notes — InnerOpen Engineering"
+  description="Short-form technical writing on platform engineering, automation, modernization, and operational patterns."
+>
+  <Header />
+
+  <main>
+    <section class="hero">
+      <Kicker>Engineering Notes</Kicker>
+      <h1>Small principles for systems that have to keep working.</h1>
+      <p class="lede">
+        Short-form technical writing on platform engineering, automation, modernization, and operational patterns.
+      </p>
+    </section>
+
+    <section class="section">
+      <div class="notes-list">
+        {notes.map((note) => (
+          <article>
+            <a href={`/notes/${note.id}`}>
+              <span>{note.data.title.split('—')[0].trim()}</span>
+              <p>{note.data.description}</p>
+            </a>
+          </article>
+        ))}
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+</BaseLayout>
+
+<style>
+  .notes-list article a {
+    display: block;
+  }
+
+  .notes-list article a:hover {
+    opacity: 0.8;
+  }
+</style>

@@ -1,0 +1,138 @@
+name: Publish Project Update
+
+on:
+  workflow_call:
+    secrets:
+      GITHUB_TOKEN:
+        description: 'Token with write access to inneropen.io (use org-level INNEROPEN_IO_TOKEN)'
+        required: true
+    inputs:
+      project:
+        description: 'Project slug (e.g., marvin, marvin-sdk)'
+        required: true
+        type: string
+      work-area:
+        description: 'Work area slug (e.g., marvin-cms, openshift)'
+        required: true
+        type: string
+      version:
+        description: 'Version number (e.g., 0.1.0, v1.2.3)'
+        required: false
+        type: string
+      headline:
+        description: 'Update headline/title'
+        required: true
+        type: string
+      summary:
+        description: 'Brief summary of the update'
+        required: true
+        type: string
+      type:
+        description: 'Update type'
+        required: false
+        type: string
+        default: 'release'
+      maturity:
+        description: 'Project maturity level'
+        required: false
+        type: string
+        default: 'experimental'
+      repository:
+        description: 'Repository URL'
+        required: false
+        type: string
+      release-url:
+        description: 'Release/announcement URL'
+        required: false
+        type: string
+      skip-duplicate-check:
+        description: 'Skip duplicate detection'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  publish-update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout inneropen.io
+        uses: actions/checkout@v4
+        with:
+          repository: InnerOpen/inneropen.io
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check for duplicate
+        if: ${{ !inputs.skip-duplicate-check && inputs.version != '' }}
+        id: duplicate-check
+        run: |
+          # Search for existing update with same project+version
+          if find src/content/updates -name "*.md" -exec grep -l "project: ${{ inputs.project }}" {} \; 2>/dev/null | xargs grep -l "version: ${{ inputs.version }}" 2>/dev/null; then
+            echo "duplicate=true" >> $GITHUB_OUTPUT
+            echo "Found existing update for ${{ inputs.project }} ${{ inputs.version }}"
+          else
+            echo "duplicate=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Exit if duplicate
+        if: steps.duplicate-check.outputs.duplicate == 'true'
+        run: |
+          echo "Update already exists for ${{ inputs.project }} ${{ inputs.version }}"
+          exit 0
+
+      - name: Generate update file
+        if: steps.duplicate-check.outputs.duplicate != 'true'
+        run: |
+          DATE=$(date +%Y-%m-%d)
+          VERSION_SLUG=$(echo '${{ inputs.version }}' | sed 's/[^a-zA-Z0-9.-]/-/g' | sed 's/^v//')
+          SLUG="${DATE}-${{ inputs.project }}-${VERSION_SLUG}"
+          FILE="src/content/updates/${SLUG}.md"
+
+          mkdir -p src/content/updates
+
+          cat > "$FILE" <<EOF
+          ---
+          title: ${{ inputs.headline }}
+          description: ${{ inputs.summary }}
+          date: ${DATE}
+          project: ${{ inputs.project }}
+          workArea: ${{ inputs.work-area }}
+          version: ${{ inputs.version }}
+          type: ${{ inputs.type }}
+          maturity: ${{ inputs.maturity }}
+          repository: ${{ inputs.repository }}
+          releaseUrl: ${{ inputs.release-url }}
+          draft: false
+          ---
+
+          ${{ inputs.summary }}
+          EOF
+
+          echo "Generated update: $FILE"
+          cat "$FILE"
+          echo "update_file=${FILE}" >> $GITHUB_ENV
+
+      - name: Create Pull Request
+        if: steps.duplicate-check.outputs.duplicate != 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Add update: ${{ inputs.headline }}"
+          branch: "update/${{ inputs.project }}-${{ inputs.version }}"
+          title: "Update: ${{ inputs.headline }}"
+          body: |
+            Automated project update from ${{ github.repository }}
+
+            **Project:** ${{ inputs.project }}
+            **Work Area:** ${{ inputs.work-area }}
+            **Version:** ${{ inputs.version }}
+            **Type:** ${{ inputs.type }}
+
+            ---
+            ${{ inputs.summary }}
+          labels: |
+            automated
+            update

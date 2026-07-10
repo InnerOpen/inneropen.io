@@ -1,0 +1,46 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import Card from '../../components/Card.astro';
+import Kicker from '../../components/Kicker.astro';
+import { getCollection } from 'astro:content';
+
+const workAreas = await getCollection('work-areas');
+const sortedWorkAreas = workAreas.sort((a, b) => a.data.order - b.data.order);
+---
+
+<BaseLayout
+  title="Work — InnerOpen Engineering"
+  description="Work areas and technical focus at InnerOpen: Marvin CMS, OpenShift, Kubernetes, platform engineering, and automation."
+>
+  <Header />
+
+  <main>
+    <section class="hero">
+      <Kicker>Work</Kicker>
+      <h1>Engineering across platforms, automation, and delivery.</h1>
+      <p class="lede">
+        InnerOpen works in multiple technical areas: content management systems, container platforms,
+        infrastructure automation, and developer experience.
+      </p>
+    </section>
+
+    <section class="section">
+      <div class="grid">
+        {sortedWorkAreas.map((area) => (
+          <Card href={`/work/${area.data.slug}`}>
+            <div class="card-topline">
+              <span>{area.data.summary}</span>
+              <span class="status">{area.data.status}</span>
+            </div>
+            <h3>{area.data.title}</h3>
+            <p>{area.data.description}</p>
+          </Card>
+        ))}
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+</BaseLayout>

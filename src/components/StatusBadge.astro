@@ -1,0 +1,10 @@
+---
+interface Props {
+  status: string;
+  variant?: 'default' | 'maturity' | 'type';
+}
+
+const { status, variant = 'default' } = Astro.props;
+---
+
+<span class={`status ${variant}`}>{status}</span>
